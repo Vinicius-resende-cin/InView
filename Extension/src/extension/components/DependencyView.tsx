@@ -4,13 +4,15 @@ import { dependency, modLine } from "../../models/AnalysisOutput";
 import { filterDuplicatedDependencies, updateLocationFromStackTrace } from "./dependencies";
 import Conflict from "./Conflict";
 import DiffView from "./Diff/DiffView";
-import GraphView from "./Graph/GraphView";
-import { SerializedGraph } from "graphology-types";
-import { generateGraphData, lineData } from "./Graph/graph";
+import GraphView, { ConflictGridType } from "./Graph/GraphView";
 import "../styles/dependency-plugin.css";
 import SettingsButton from "./Settings/Settings-button";
 import SettingsService from "../../services/SettingsService";
-import { getClassFromJavaFilename, isLineFromLeft } from "@extension/utils";
+import { getClassFromJavaFilename, isLineFromLeft, ensureJavaExtension } from "@extension/utils";
+import { Node } from "./Graph/Node";
+import { getDiffLine } from "./Diff/diff-navigation";
+import { FileObject, Grouping_nodes, getGraphType } from "./grouping";
+import { extractNodesFromDependency } from "../utils/extractNode";
 
 const analysisService = new AnalysisService();
 const settingsService = new SettingsService();
@@ -21,6 +23,11 @@ async function getAnalysisOutput(owner: string, repository: string, pull_number:
 
 async function getSettings(owner: string, repository: string, pull_number: number) {
   return await settingsService.getSettings(owner, repository, pull_number);
+}
+
+type GraphData = {
+  files: FileObject[];
+  graphType: ConflictGridType;
 }
 
 interface DependencyViewProps {
@@ -44,209 +51,140 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
    */
   const [dependencies, setDependencies] = useState<dependency[]>([]);
   const [modifiedLines, setModifiedLines] = useState<modLine[]>([]);
+
+  /*
+   * diff properties
+   */
   const [diff, setDiff] = useState<string>("");
   const [filesFromBase, setFilesFromBase] = useState<string[]>([]);
-  const [graphData, setGraphData] = useState<Partial<SerializedGraph> | null>(null);
+
+  /*
+   * settings properties
+   */
   const [mainClass, setMainClass] = useState("");
   const [baseClass, setBaseClass] = useState("");
   const [mainMethod, setMainMethod] = useState("");
-  const [loading, setloading] = useState<boolean>(true);
 
+  /*
+   * loading properties
+   */
+  const [loading, setloading] = useState<boolean>(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   /*
-   * page properties
+   * conflict properties
    */
   const [activeConflict, setActiveConflict] = useState<number | null>(null); // index of the active conflict on dependencies list
+  // const [leftNode, setLeftNode] = useState<Node | null>(null);
+  // const [rightNode, setRightNode] = useState<Node | null>(null);
+
+  /*
+   * graph properties
+   */
+  const [graphData, setGraphData] = useState<GraphData | null>(null);
 
   /*
    * methods
    */
-  const updateGraph = (dep: dependency, L: lineData, R: lineData, CF?: lineData) => {
-    let newGraphData;
-
+  const updateGraph = (dep: dependency, L: Node, R: Node, CF?: Node) => {
     // get the LC and RC
     dep = updateLocationFromStackTrace(dep, { inplace: false, mode: "deep" });
 
-    // get the filename and line numbers of the conflict
-    let fileFrom;
-    let lineFrom;
-    let fileTo;
-    let lineTo;
-    let cfFilename = "";
-    let cfLine;
-
-    if (dep.type.startsWith("CONFLUENCE")) {
-      let sourceOne = dep.body.interference.find((el) => el.type === "source1");
-      let sourceTwo = dep.body.interference.find((el) => el.type === "source2");
-      let confluence = dep.body.interference.find((el) => el.type === "confluence");
-
-      if (!sourceOne || !sourceTwo || !confluence) {
-        console.error("Erroe: Any interference of 'source' or 'confluence' type was founded");
-        return;
-      }
-
-      fileFrom = sourceOne.location.file.replaceAll("\\", "/"); // filename source 1
-      lineFrom = sourceOne; // line source 1
-      fileTo = sourceTwo.location.file.replaceAll("\\", "/"); // filename source 2
-      lineTo = sourceTwo; // line source 2
-      cfFilename = confluence.location.file.replaceAll("\\", "/"); // filename targ
-      cfLine = confluence; // line targ
-    } else {
-      fileFrom = dep.body.interference[0].location.file.replaceAll("\\", "/"); // first filename
-      lineFrom = dep.body.interference[0]; // first line
-      fileTo = dep.body.interference[dep.body.interference.length - 1].location.file.replaceAll("\\", "/"); // last filename
-      lineTo = dep.body.interference[dep.body.interference.length - 1]; // last line
-    }
-
-    const LC = {
-      file: fileFrom,
-      line: lineFrom.location.line,
-      method: lineFrom.stackTrace?.at(1)?.method ?? lineFrom.location.method
-    };
-    const RC = {
-      file: fileTo,
-      line: lineTo.location.line,
-      method: lineTo.stackTrace?.at(1)?.method ?? lineTo.location.method
-    };
+    const { L: LC, R: RC } = extractNodesFromDependency(dep);
 
     // If the nodes are equal, update from the stack trace
-    if (getClassFromJavaFilename(L.file) === getClassFromJavaFilename(LC.file) && L.line === LC.line) {
-      L.file = dep.body.interference[0].stackTrace?.at(0)?.class.replaceAll(".", "/") ?? L.file;
-      L.line = dep.body.interference[0].stackTrace?.at(0)?.line ?? L.line;
+    if (getClassFromJavaFilename(L.fileName) === getClassFromJavaFilename(LC.fileName) && L.numberHighlight === LC.numberHighlight) {
+      L.fileName = ensureJavaExtension(dep.body.interference[0].stackTrace?.at(0)?.class.replaceAll(".", "/") ?? L.fileName);
+
+      if (dep.body.interference[0].stackTrace?.at(0)?.line){
+        L.numberHighlight = dep.body.interference[0].stackTrace?.at(0)?.line ?? L.numberHighlight;
+
+        let L_Row;
+        let newNumber = L.numberHighlight;
+        for ( let i = -1; i <= 1; i++){
+          L_Row = getDiffLine(L.fileName, newNumber + i);
+    
+          L.lines[i + 1] = L_Row.querySelector(".d2h-code-line-ctn")?.textContent || "";
+        }
+
+      } 
     }
 
-    if (getClassFromJavaFilename(R.file) === getClassFromJavaFilename(RC.file) && R.line === RC.line) {
-      R.file =
-        (dep.type.startsWith("CONFLUENCE")
-          ? dep.body.interference[1].stackTrace?.at(0)?.class.replaceAll(".", "/")
-          : dep.body.interference[dep.body.interference.length - 1].stackTrace?.at(0)?.class.replaceAll(".", "/")) ?? R.file;
-      R.line =
-        (dep.type.startsWith("CONFLUENCE")
-          ? dep.body.interference[1].stackTrace?.at(0)?.line
-          : dep.body.interference[dep.body.interference.length - 1].stackTrace?.at(0)?.line) ?? R.line;
+    if (getClassFromJavaFilename(R.fileName) === getClassFromJavaFilename(RC.fileName) && R.numberHighlight === RC.numberHighlight) {
+      R.fileName = ensureJavaExtension(dep.body.interference[dep.body.interference.length - 1].stackTrace?.at(0)?.class.replaceAll(".", "/") ?? R.fileName);
+
+      if (dep.body.interference[dep.body.interference.length - 1].stackTrace?.at(0)?.line){
+        R.numberHighlight = dep.body.interference[dep.body.interference.length - 1].stackTrace?.at(0)?.line ?? R.numberHighlight;
+
+        let R_Row;
+        let newNumber = R.numberHighlight;
+        for ( let i = -1; i <= 1; i++){
+          R_Row = getDiffLine(R.fileName, newNumber + i);
+
+          R.lines[i + 1] = R_Row.querySelector(".d2h-code-line-ctn")?.textContent || "";
+        }
+
+      } 
     }
 
     //Sending the correct colors to the nodes
-    let lColor = "";
-    let rColor = "";
+    //TODO: set colors
+    // let lColor = "";
+    // let rColor = "";
 
-    const leftLines = [L, LC];
+    // const leftLines = [L, LC];
 
-    if (isLineFromLeft(leftLines, modifiedLines)) {
-      lColor = "#1E90FF"; //azul
-      rColor = "#228B22"; //verde
-    } else {
-      lColor = "#228B22"; //verde
-      rColor = "#1E90FF"; //azul
-    }
+    // if (isLineFromLeft(leftLines, modifiedLines)) {
+    //   lColor = "#1E90FF"; //azul
+    //   rColor = "#228B22"; //verde
+    // } else {
+    //   lColor = "#228B22"; //verde
+    //   rColor = "#1E90FF"; //azul
+    // }
 
-    if (dep.type.startsWith("OA")) {
-      const descriptionRegex = /<(.+:.+)> - .*<(.+:.+)>/;
-      const variables = descriptionRegex.exec(dep.body.description);
+    const normalizePath = (p?: string) =>
+      p ? p.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "") : p;
 
-      newGraphData = generateGraphData(
-        "oa",
-        { L, R, LC, RC },
-        lColor,
-        rColor,
-        variables ? { variables: { left: variables[1], right: variables[2] } } : undefined
-      );
-    } else if (dep.type.startsWith("CONFLICT")) {
-      const variables = dep.body.description.split(" - ").map((v) => /<(.+:.+)>/.exec(v)?.[1] ?? v);
-
-      // If the conflict is DF
-      newGraphData = generateGraphData("df", { L, R, LC, RC }, lColor, rColor, {
-        variables: { left: variables[0], right: variables[1] }
+    const unifyFileNames = (...nodes: Array<Node | undefined>) => {
+      const ns = nodes.filter(Boolean) as Node[];
+      ns.forEach((n) => {
+        n.fileName = normalizePath(n.fileName) ?? n.fileName;
       });
-    } else if (dep.type.startsWith("CONFLUENCE")) {
-      if (cfLine) {
-        CF = {
-          file: cfFilename,
-          line: cfLine.location.line,
-          method: cfLine.location.method
-        };
-        newGraphData = generateGraphData("cf", { L, R, LC, RC, CF }, lColor, rColor);
+
+      for (let i = 0; i < ns.length; i++) {
+        for (let j = 0; j < ns.length; j++) {
+          if (i === j) continue;
+          const a = ns[i].fileName;
+          const b = ns[j].fileName;
+          if (!a || !b || a === b) continue;
+
+          // se um contém o outro, atribui o menor (mais curto) ao maior
+          if (a.includes(b) && b.length < a.length) {
+            ns[i].fileName = b;
+          } else if (b.includes(a) && a.length < b.length) {
+            ns[j].fileName = a;
+          }
+        }
       }
-    }
+    };
+
+    unifyFileNames(L, R, LC, RC);
+    // Dividing the nodes into files
+    console.log("Updating graph with nodes:", { L, R, LC, RC });
+    const newGraphData = Grouping_nodes(dep, L, R, LC, RC);
+
+    // identifying the graph type
+    const graphType = getGraphType(dep, L, R, LC, RC);
+    console.log("GraphType Identificado: ", graphType);
 
     // set the new graph data
-    if (!newGraphData) setGraphData(null);
-    else setGraphData(newGraphData);
+    if (!newGraphData || !graphType) setGraphData(null);
+    else setGraphData({ files: newGraphData, graphType });
   };
 
   const changeActiveConflict = (dep: dependency) => {
-    // get the filename and line numbers of the conflict
-    let fileFrom;
-    let lineFrom;
-    let fileTo;
-    let lineTo;
-    let cfLine;
-    let cfFileName = "";
-
-    if (dep.type.startsWith("CONFLUENCE")) {
-      let sourceOne = dep.body.interference.find((el) => el.type === "source1");
-      let sourceTwo = dep.body.interference.find((el) => el.type === "source2");
-      let confluence = dep.body.interference.find((el) => el.type === "confluence");
-
-      if (!sourceOne || !sourceTwo || !confluence) {
-        console.error("Error: Any interference of 'source' or 'confluence' type was founded");
-        return;
-      }
-
-      fileFrom = sourceOne.location.file.replaceAll("\\", "/"); // source1 filename
-      lineFrom = sourceOne; // source1 line
-      fileTo = sourceTwo.location.file.replaceAll("\\", "/"); // source2 filename
-      lineTo = sourceTwo; // source2 line
-      cfLine = confluence;
-      cfFileName = confluence.location.file.replaceAll("\\", "/"); // confluence filename
-    } else {
-      fileFrom = dep.body.interference[0].location.file.replaceAll("\\", "/"); // first filename
-      lineFrom = dep.body.interference[0]; // first line
-      fileTo = dep.body.interference[dep.body.interference.length - 1].location.file.replaceAll("\\", "/"); // last filename
-      lineTo = dep.body.interference[dep.body.interference.length - 1]; // last line
-    }
-
-    // if the filename is unknown, try to get the first valid one from the stack trace
-    if (fileFrom === "UNKNOWN" || fileTo === "UNKNOWN") {
-      updateLocationFromStackTrace(dep, { inplace: true });
-      fileFrom = dep.body.interference[0].location.file.replaceAll("\\", "/");
-      fileTo = dep.type.startsWith("CONFLUENCE")
-        ? dep.body.interference[1].location.file.replaceAll("\\", "/")
-        : dep.body.interference[dep.body.interference.length - 1].location.file.replaceAll("\\", "/");
-    }
-
-    // declare the graph data variables
-    if (dep.type.startsWith("CONFLUENCE") && cfLine) {
-      let L: lineData = {
-        file: fileFrom,
-        line: lineFrom.location.line,
-        method: dep.body.interference[0].stackTrace?.at(0)?.method ?? lineFrom.location.method
-      };
-      let R: lineData = {
-        file: fileTo,
-        line: lineTo.location.line,
-        method: dep.body.interference[1].stackTrace?.at(0)?.method ?? lineTo.location.method
-      };
-      let CF: lineData = {
-        file: cfFileName,
-        line: cfLine.location.line,
-        method: cfLine.stackTrace?.at(0)?.method ?? lineTo.location.method
-      };
-      updateGraph(dep, L, R, CF);
-    } else {
-      let L: lineData = {
-        file: fileFrom,
-        line: lineFrom.location.line,
-        method: dep.body.interference[0].stackTrace?.at(0)?.method ?? lineFrom.location.method
-      };
-      let R: lineData = {
-        file: fileTo,
-        line: lineTo.location.line,
-        method: dep.body.interference[dep.body.interference.length - 1].stackTrace?.at(0)?.method ?? lineTo.location.method
-      };
-      updateGraph(dep, L, R);
-    }
+    const { L, R, CF } = extractNodesFromDependency(dep);
+    updateGraph(dep, L, R, CF);
   };
 
   // get the analysis output
@@ -377,7 +315,7 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
 
             {diff ? (
               <div id="content-container" className="tw-w-full">
-                {graphData && <GraphView data={graphData} />}
+                {graphData && <GraphView data={graphData.files} conflictGridType={graphData.graphType} />}
                 <DiffView diff={diff} modifiedLines={modifiedLines} filesFromBase={filesFromBase} />
               </div>
             ) : (

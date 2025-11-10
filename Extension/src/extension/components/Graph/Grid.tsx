@@ -1,20 +1,22 @@
-import { useState, useImperativeHandle, forwardRef, MutableRefObject } from "react";
+import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
 
-type gridRef = {
-  initializeGrid: () => void;
+export type layout = {
+  rows: number;
+  columns: number;
+  rowSizes?: number[];
+  columnSizes?: number[];
+}
+
+export type gridRef = {
   setCellElement: (row: number, column: number, element: JSX.Element) => void;
-} | null;
+  setLayout: (layout: layout) => void;
+  getCells: () => Array<Array<JSX.Element>>;
+};
 
 interface GridProps {
   width: number;
   height: number;
-  layout: {
-    rows: number;
-    columns: number;
-    rowSizes?: number[];
-    columnSizes?: number[];
-  };
-  ref: MutableRefObject<gridRef>;
+  layout: layout;
 }
 
 /**
@@ -25,17 +27,13 @@ interface GridProps {
  *
  * @returns JSX.Element
  */
-function Grid({ width, height, layout, ref }: GridProps): JSX.Element {
+const Grid = forwardRef<gridRef, GridProps>(({ width, height, layout }, ref): JSX.Element => {
   // Save elements in a structure representing the grid layout
   // This structure will be used to position the nodes in the graph
   const [cells, setCells] = useState<Array<Array<JSX.Element>>>([]);
+  const [gridLayout, setGridLayout] = useState<layout>(layout);
 
   //=============== Methods ===================
-  // Initialize the grid cells based on the layout
-  const initializeGrid = () => {
-    const newCells = Array.from({ length: layout.rows }, () => Array.from({ length: layout.columns }, () => <></>));
-    setCells(newCells);
-  };
 
   // Set an element to a cell in the grid
   const setCellElement = (row: number, column: number, element: JSX.Element) => {
@@ -46,18 +44,42 @@ function Grid({ width, height, layout, ref }: GridProps): JSX.Element {
     });
   };
 
+  const setLayout = (newLayout: layout) => {
+    setGridLayout(newLayout);
+  };  
+
+  // method to return the cells
+  const getCells = () => {
+    return cells;
+  }
+
   // Expose the grid methods to the parent component
   useImperativeHandle(ref, () => ({
-    initializeGrid,
-    setCellElement
+    setCellElement,
+    setLayout,
+    getCells
   }));
 
-  // =============== Initialization ==================
+  useEffect(() => {
+    // Initialize the grid cells based on the layout
+    const initializeGrid = () => {
+      const newCells = Array.from({ length: gridLayout.rows }, () => Array.from({ length: gridLayout.columns }, () => <></>));
+      setCells(newCells);
+    };
+    initializeGrid();
+  }, [gridLayout]);
+
+  useEffect(() => {
+    console.log("Grid cells updated:", cells);
+  }, [cells]);
+
   // Get the relative size of each row and column
-  const rowSizes = layout.rowSizes ? layout.rowSizes.map((size) => size / height) : Array(layout.rows).fill(1 / layout.rows);
-  const columnSizes = layout.columnSizes
-    ? layout.columnSizes.map((size) => size / width)
-    : Array(layout.columns).fill(1 / layout.columns);
+  const rowSizes = gridLayout.rowSizes
+    ? gridLayout.rowSizes.map((size) => size / height)
+    : Array(gridLayout.rows).fill(1 / gridLayout.rows);
+  const columnSizes = gridLayout.columnSizes
+    ? gridLayout.columnSizes.map((size) => size / width)
+    : Array(gridLayout.columns).fill(1 / gridLayout.columns);
 
   // Calculate the position of each row and column
   const rowPositions = rowSizes.reduce((acc, size, index) => {
@@ -73,13 +95,12 @@ function Grid({ width, height, layout, ref }: GridProps): JSX.Element {
 
   return (
     <div
+      id= "grid-container"
       style={{
-        position: "absolute",
-        width: "100%",
-        height: "100%",
+        height: "300px",
         display: "grid",
         gridTemplateRows: rowSizes.map((size) => `${size * 100}%`).join(" "),
-        gridTemplateColumns: columnSizes.map((size) => `${size * 100}%`).join(" ")
+        gridTemplateColumns: columnSizes.map((size) => `${size * 100}%`).join(" "),
       }}>
       {cells.map((row, rowIndex) =>
         row.map((cell, columnIndex) => (
@@ -88,7 +109,6 @@ function Grid({ width, height, layout, ref }: GridProps): JSX.Element {
             style={{
               gridRowStart: rowIndex + 1,
               gridColumnStart: columnIndex + 1,
-              position: "relative"
             }}>
             {cell}
           </div>
@@ -96,6 +116,6 @@ function Grid({ width, height, layout, ref }: GridProps): JSX.Element {
       )}
     </div>
   );
-}
+});
 
-export default forwardRef(Grid);
+export default Grid;

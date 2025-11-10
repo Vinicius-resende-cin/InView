@@ -176,8 +176,8 @@ const getDiffLine = (file: string, line: number) => {
 
   // get the diff element of the file
   const diffContent = Array.from(diffFiles).filter((diffFile) => {
-    const fileName = diffFile.querySelector(".d2h-file-name")?.textContent;
-    return fileName?.endsWith(file);
+    const fileName = diffFile.querySelector(".d2h-file-name")?.textContent?.replace(/\.java$/, "");
+    return fileName?.endsWith(file.replace(/\.java$/, ""));
   })[0];
   if (!diffContent) throw new Error(`Diff not found for file ${file}`);
 

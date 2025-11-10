@@ -1,0 +1,30 @@
+services:
+  dbserver:
+    build:
+      context: ./DBServer
+    container_name: dbserver
+    env_file:
+      - ./DBServer/.env
+    ports:
+      - "4000:4000"
+    networks:
+      - app-network
+
+  github-app:
+    build:
+      context: ./GithubApp
+    container_name: github-app
+    env_file:
+      - ./GithubApp/.env
+    depends_on:
+      - dbserver
+    environment:
+      - ANALYSIS_API=http://dbserver:4000/analysis
+      - REPOS_API=http://dbserver:4000/repos
+      - SETTINGS_API=http://dbserver:4000
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
