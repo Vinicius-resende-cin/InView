@@ -1,4 +1,4 @@
-import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
+import { useState, useImperativeHandle, forwardRef, useEffect, useRef, RefObject } from "react";
 
 export type layout = {
   rows: number;
@@ -11,6 +11,7 @@ export type gridRef = {
   setCellElement: (row: number, column: number, element: JSX.Element) => void;
   setLayout: (layout: layout) => void;
   getCells: () => Array<Array<JSX.Element>>;
+  containerRef: RefObject<HTMLDivElement | null> | null;
 };
 
 interface GridProps {
@@ -53,12 +54,15 @@ const Grid = forwardRef<gridRef, GridProps>(({ width, height, layout }, ref): JS
     return cells;
   }
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   // Expose the grid methods to the parent component
   useImperativeHandle(ref, () => ({
     setCellElement,
     setLayout,
-    getCells
-  }));
+    getCells,
+    containerRef
+  }), [cells, gridLayout]);
 
   useEffect(() => {
     // Initialize the grid cells based on the layout
@@ -95,6 +99,7 @@ const Grid = forwardRef<gridRef, GridProps>(({ width, height, layout }, ref): JS
 
   return (
     <div
+      ref={containerRef}
       id= "grid-container"
       style={{
         height: "300px",
