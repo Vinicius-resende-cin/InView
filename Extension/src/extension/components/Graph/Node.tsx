@@ -14,6 +14,7 @@ interface CodeNodeProps {
   isDashed?: boolean;
   style?: CSSProperties;
   role?: string;
+  nodeColor?: { main: string; alt: string };
 }
 
 export class Node {
@@ -65,30 +66,30 @@ export const CodeNode: React.FC<CodeNodeProps> = ({
   isSink = false,
   isDashed,
   style,
-  role
+  role,
+  nodeColor
 }) => {
   const isSpecial = isCall || isSink;
 
-  const width = isSpecial ? 290 : 363;
-  const lineCharLimit = 32;
-  const lineSpacing = isSpecial ? 2 : 4;
-  const baseFontSize = isSpecial ? 16 : 20;
+  const width = isSpecial ? 50 : 60;
+  const lineCharLimit = 50;
+  const lineSpacing = isSpecial ? 4 : 6;
+  const baseFontSize = isSpecial ? 12 : 14;
   const numberFontSize = isSpecial ? 12 : 14;
-  const padding = 40;
+  const padding = 8;
   const lineHeight = baseFontSize + lineSpacing;
-  const startY = 35;
+  const startY = 2 * padding + baseFontSize;
 
   const handleClick = () => {
     const file= fileName;
-    const line = lines[1];
-    const diffLine = getDiffLine(file.endsWith(".java") ? file : `${file}.java`, Number(line));
+    const diffLine = getDiffLine(file.endsWith(".java") ? file : `${file}.java`, numberHighlight);
 
     // checking if the diffLine is visible
     if (diffLine?.classList.contains("d2h-d-none")){
       let firstLine = firstVisibleLine(file);
       const diffFile = document.querySelector(`${file}`) as HTMLElement;
       while (diffLine?.classList.contains("d2h-d-none")) {
-        if (Number(line) > firstLine){
+        if (numberHighlight > firstLine){
           let lastLine = lastVisibleLine(file);
           expandBottom(diffFile, lastLine, file);
         } else{
@@ -102,26 +103,26 @@ export const CodeNode: React.FC<CodeNodeProps> = ({
   };
 
   return (
-    <svg width={width} height={lines.length * lineHeight + padding} xmlns="http://www.w3.org/2000/svg" overflow={"hidden"} style={{ ...style, position: "relative" }}>
+    <svg width={`${width}%`} height={lines.length * lineHeight + 4 * padding} xmlns="http://www.w3.org/2000/svg" overflow={"hidden"} style={{ ...style, position: "relative" }}>
       {/* Background */}
       <rect
         x="0"
         y="0"
-        width={width}
-        height={lines.length * lineHeight + padding}
-        rx="24"
-        ry="24"
-        fill="#D9D9D9"
+        width="100%"
+        height={lines.length * lineHeight + 4 * padding}
+        rx="16"
+        ry="16"
+        fill={nodeColor ? nodeColor.alt : "#142A38"}
       />
 
       {isDashed && (
         <rect
-          x="-4"
-          y="-4"
-          width={width + 8}
-          height={lines.length * lineHeight + padding + 8}
-          rx="28"
-          ry="28"
+          x={`-${padding}`}
+          y={`-${padding}`}
+          width={`calc(100% + ${2 * padding}px)`}
+          height={lines.length * lineHeight + 6 * padding}
+          rx="16"
+          ry="16"
           fill="none"
           stroke="#000"
           strokeWidth="2"
@@ -135,42 +136,41 @@ export const CodeNode: React.FC<CodeNodeProps> = ({
         const isHighlight = i === 1;
 
         return (
-          <g key={i} width={width - padding} >
+          <g key={i} width={width - 2 * padding} >
             {isHighlight ? (
               <g onClick={handleClick} style={{ cursor: "pointer" }}>
                 <rect
-                  x="20"
+                  x="0"
                   y={y - baseFontSize}
-                  width={width - padding}
+                  width="100%"
                   height={lineHeight}
-                  fill="#A9A9A9"
-                  rx="8"
+                  fill={nodeColor ? nodeColor.main : "#142A38"}
                 />
                 <text
-                  x="30"
+                  x={padding}
                   y={y}
                   fontFamily="Roboto"
                   fontSize={numberFontSize}
                   fontWeight="400"
-                  fill="#333"
+                  fill="#FFFFFF"
                 >
                   {numberHighlight + i - 1}
                 </text>
                 <clipPath id={`bound-rect-${i}`}>
                   <rect
-                    x="50"
+                    x={padding + 20}
                     y={y - baseFontSize}
-                    width={width - padding - 30}
+                    width="100%"
                     height={lineHeight}
                   />
                 </clipPath>
                 <text
-                  x="50"
+                  x={padding + 20}
                   y={y}
                   fontFamily="Roboto"
                   fontSize={baseFontSize}
                   fontWeight="500"
-                  fill="#000"
+                  fill="#FFFFFF"
                   overflow={"hidden"}
                   style={{whiteSpace: "pre"}}
                   clipPath={`url(#bound-rect-${i})`}
@@ -181,30 +181,30 @@ export const CodeNode: React.FC<CodeNodeProps> = ({
             ) : (
               <>
                 <text
-                  x="30"
+                  x={padding}
                   y={y}
                   fontFamily="Roboto"
                   fontSize={numberFontSize}
                   fontWeight="400"
-                  fill="#333"
+                  fill="#FFFFFF"
                 >
                   {numberHighlight + i - 1}
                 </text>
                 <clipPath id={`bound-rect-${i}`}>
                   <rect
-                    x="50"
+                    x={padding + 20}
                     y={y - baseFontSize}
-                    width={width - padding - 30}
+                    width="100%"
                     height={lineHeight}
                   />
                 </clipPath>
                 <text
-                  x="50"
+                  x={padding + 20}
                   y={y}
                   fontFamily="Roboto"
                   fontSize={baseFontSize}
                   fontWeight="400"
-                  fill="#000"
+                  fill="#FFFFFF"
                   overflow={"hidden"}
                   style={{whiteSpace: "pre"}}
                   clipPath={`url(#bound-rect-${i})`}

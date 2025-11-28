@@ -6,6 +6,13 @@ import { layout } from "./Grid";
 import { FileComponent } from "./File";
 import { getArrows } from "./arrowLayout";
 import { Arrow } from "./arrowLayout";
+import { getDiffLine } from "../Diff/diff-navigation";
+
+const NodeColor = {
+  LEFT: { main: "#B7007E", alt: "#950067" },
+  RIGHT: { main: "#118900", alt: "#0C6200" },
+  BASE: { main: "#030F28", alt: "#142A38" },
+}
 
 export type ConflictGridType = {
   layout: layout;
@@ -44,12 +51,29 @@ export default function GraphView({ data, conflictGridType }: GraphViewProps) {
           const position = conflictGridType.positions[posIndex];
           nodesIndex.push(nodeIndex);
 
+          let nodeColor: { main: string; alt: string } = NodeColor.BASE;
+          try {
+            console.log("Getting diff line for:", node.fileName, node.numberHighlight);
+            const diffLine = getDiffLine(node.fileName.endsWith(".java") ? node.fileName : `${node.fileName}.java`, node.numberHighlight);
+            if (diffLine) {
+              console.log("Diff line found:", diffLine);
+              const td = diffLine.querySelector("td") as HTMLTableCellElement;
+              const cls = td.classList;
+              if (cls.contains("d2h-ins-left") || cls.contains("d2h-del-left")) nodeColor = NodeColor.LEFT;
+              else if (cls.contains("d2h-ins") || cls.contains("d2h-del")) nodeColor = NodeColor.RIGHT;
+            } else {
+              console.warn("Diff line not found for:", node.fileName, node.numberHighlight);
+            }
+          } catch (e) {
+            // ignore if diff not rendered yet
+            console.warn("Diff line not found:", e);
+          }
+
           gridRef.current!.setCellElement(position[0] - 1, position[1] - 1,
             <div
               key={`${fileObject.fileName}-${nodeIndex}`}
               ref={el => nodeRefs.current[fileIndex][nodeIndex] = el} 
               style={{
-              position: "relative",
               left: padding,
               top: padding,
               width: `calc(100% - ${padding * 2}px)`,
@@ -57,6 +81,7 @@ export default function GraphView({ data, conflictGridType }: GraphViewProps) {
             }}>
             <CodeNode
               key={`${fileObject.fileName}-${nodeIndex}`}
+              nodeColor={nodeColor}
               fileName={node.fileName}
               lines={node.lines}
               numberHighlight={node.numberHighlight}
