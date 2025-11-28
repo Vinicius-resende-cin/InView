@@ -34,13 +34,12 @@ export const FileComponent: React.FC<FileComponentProps> = ({ file, width, heigh
           ${width},${height}
           0,${height}
         `}
-        fill="white"
-        stroke="black"
-        strokeWidth={2}
-        rx={8}
+        fill-opacity={0}
+        stroke="white"
+        strokeWidth={3}
       />
 
-      <text x={16} y={24} fontSize={16} fontWeight="bold" fill="#000">
+      <text x={16} y={24} fontSize={16} fontWeight="bold" fill="#FFFFFF">
         {file.fileName}
       </text>
 
@@ -51,9 +50,9 @@ export const FileComponent: React.FC<FileComponentProps> = ({ file, width, heigh
           ${width},${foldSize},
           ${width - foldSize},0
         `}
-        fill="white"
-        stroke="black"
-        strokeWidth={1}
+        fill-opacity={0}
+        stroke="white"
+        strokeWidth={2}
       />
     </svg>
   );
