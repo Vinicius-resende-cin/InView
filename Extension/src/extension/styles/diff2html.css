@@ -11,11 +11,11 @@
   --d2h-empty-placeholder-border-color: #e1e1e1;
   --d2h-selected-color: #c8e1ff;
   --d2h-ins-bg-color: #aeffae;
-  --d2h-ins-left-bg-color: #9ef0ff;
+  --d2h-ins-left-bg-color: #fc77d2;
   --d2h-ins-border-color: #b4e2b4;
-  --d2h-ins-left-border-color: #b4cfe2;
+  --d2h-ins-left-border-color: #d64caa;
   --d2h-ins-highlight-bg-color: #97f295;
-  --d2h-ins-left-highlight-bg-color: #46b4c7;
+  --d2h-ins-left-highlight-bg-color: #db51af;
   --d2h-ins-label-color: #399839;
   --d2h-del-bg-color: #fee8e9;
   --d2h-del-left-bg-color: #fee8fe;
@@ -26,7 +26,7 @@
   --d2h-del-label-color: #c33;
   --d2h-change-del-color: #fdf2d0;
   --d2h-change-ins-color: #d1ffd1;
-  --d2h-change-ins-left-color: #c7f7ff;
+  --d2h-change-ins-left-color: #fc77d2;
   --d2h-info-bg-color: #f8fafd;
   --d2h-info-border-color: #d5e4f2;
   --d2h-change-label-color: #d0b44c;
@@ -42,11 +42,11 @@
   --d2h-dark-empty-placeholder-border-color: #30363d;
   --d2h-dark-selected-color: rgba(56, 139, 253, 0.1);
   --d2h-dark-ins-bg-color: rgba(46, 160, 67, 0.15);
-  --d2h-dark-ins-left-bg-color: rgba(49, 224, 255, 0.15);
+  --d2h-dark-ins-left-bg-color: rgba(230, 0, 155, 0.35);
   --d2h-dark-ins-border-color: rgba(46, 160, 67, 0.4);
-  --d2h-dark-ins-left-border-color: rgba(46, 158, 46, 0.4);
+  --d2h-dark-ins-left-border-color: rgba(230, 0, 155, 0.4);
   --d2h-dark-ins-highlight-bg-color: rgba(46, 160, 67, 0.4);
-  --d2h-dark-ins-left-highlight-bg-color: rgba(70, 180, 199, 0.4);
+  --d2h-dark-ins-left-highlight-bg-color: rgba(230, 0, 155, 0.2);
   --d2h-dark-ins-label-color: #3fb950;
   --d2h-dark-del-bg-color: rgba(248, 81, 73, 0.1);
   --d2h-dark-del-left-bg-color: rgba(248, 81, 254, 0.1);
@@ -57,7 +57,7 @@
   --d2h-dark-del-label-color: #f85149;
   --d2h-dark-change-del-color: rgba(210, 153, 34, 0.2);
   --d2h-dark-change-ins-color: rgba(46, 160, 67, 0.25);
-  --d2h-dark-change-ins-left-color: rgba(70, 180, 199, 0.25);
+  --d2h-dark-change-ins-left-color: rgba(230, 0, 155, 0.3);
   --d2h-dark-info-bg-color: rgba(56, 139, 253, 0.1);
   --d2h-dark-info-border-color: rgba(56, 139, 253, 0.4);
   --d2h-dark-change-label-color: #d29922;
