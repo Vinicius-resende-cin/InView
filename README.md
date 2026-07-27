@@ -15,6 +15,9 @@ This project is licensed under the [Creative Commons Attribution 4.0 Internation
       - [GithubApp](#githubapp)
       - [DBServer](#dbserver)
   - [Extension](#extension)
+  - [Standalone Web Interface](#standalone-web-interface)
+    - [Backend Mode](#backend-mode)
+    - [Local-folder Mode](#local-folder-mode)
 
 # Usage
 
@@ -102,3 +105,43 @@ Then, follow the official instructions in the [Chrome documentation](https://dev
 2. Enable "Developer mode" in the top right corner.
 3. Click on "Load unpacked" and select the `Extension/dist` folder in the cloned repository.
 4. The extension should now be installed and ready to use.
+
+## Standalone Web Interface
+
+As an alternative to the browser extension, the exact same interface can run as a
+standalone local web app — no extension to install and no dependency on the GitHub page.
+It reuses the same UI code as the extension, so the interface is identical; only the way
+it is served changes. It runs from the `Extension` folder:
+
+```bash
+# on the Extension folder
+npm install
+```
+
+### Backend Mode
+
+Uses the DBServer backend (the same one the extension relies on), configured via the
+`SERVER_URL` variable in `Extension/.env`:
+
+```bash
+# on the Extension folder
+npm run start:web        # dev server at http://localhost:3000
+```
+
+Then open the app pointing to a Pull Request, e.g.
+`http://localhost:3000/?owner=OWNER&repo=REPO&pull=123` (a form is shown if the query
+params are omitted).
+
+### Local-folder Mode
+
+Runs **without the GithubApp, DBServer or MongoDB**. Instead of fetching a backend, you
+point the app at a local folder containing analysis-output JSON files. When the main page
+is opened, the folder is listed and you select a file to render:
+
+```bash
+# on the Extension folder
+npm run start:web:local -- --env dir=path/to/your/json-folder
+```
+
+Then open `http://localhost:3000` and pick a file from the list. See the
+[Extension README](Extension/README.md#standalone-web-interface) for full details.
