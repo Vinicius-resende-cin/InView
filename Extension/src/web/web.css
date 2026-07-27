@@ -1,0 +1,152 @@
+/* Base page styles for the standalone web app.
+   The extension inherited these from GitHub's own stylesheet; here we provide
+   a minimal, neutral equivalent so DependencyView renders on a bare page. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0d1117;
+  color: #e6edf3;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+
+#dependencies-content-root {
+  margin: 0 auto;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+/* Identity fallback form */
+.inview-identity-form {
+  max-width: 360px;
+  margin: 10vh auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inview-identity-form h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.inview-identity-form p {
+  margin: 0 0 8px;
+  color: #9ca3af;
+}
+
+.inview-identity-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.inview-identity-form input {
+  padding: 8px 10px;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  background-color: #161b22;
+  color: #e6edf3;
+  font-size: 14px;
+}
+
+.inview-identity-form button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background-color: #238636;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inview-identity-form button:hover {
+  background-color: #2ea043;
+}
+
+/* Local mode: file picker */
+.inview-local-picker {
+  max-width: 640px;
+  margin: 8vh auto;
+}
+
+.inview-local-picker h1 {
+  margin: 0 0 8px;
+}
+
+.inview-local-dir code {
+  color: #9ca3af;
+  word-break: break-all;
+}
+
+.inview-local-files {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inview-local-files button {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  background-color: #161b22;
+  color: #e6edf3;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.inview-local-files button:hover {
+  border-color: #2ea043;
+  background-color: #1b2230;
+}
+
+.inview-local-refresh,
+.inview-local-error button {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  background-color: #21262d;
+  color: #e6edf3;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.inview-local-error {
+  color: #f85149;
+}
+
+/* Local mode: top bar shown above DependencyView */
+.inview-local-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #21262d;
+}
+
+.inview-local-bar button {
+  padding: 4px 10px;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  background-color: #21262d;
+  color: #e6edf3;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.inview-local-bar__name {
+  color: #9ca3af;
+  font-size: 13px;
+  word-break: break-all;
+}
