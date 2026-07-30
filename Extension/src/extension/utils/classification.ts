@@ -109,7 +109,22 @@ export function getFramesWithLines(
   const frames: FrameInfo[] = [];
   const seenPairs = new Set<string>(); // Track (fileKey, line) pairs to avoid duplicates
 
-  const stackTrace = interferenceNode.stackTrace || [];
+  const stackTrace: {class: string; method: string; line: number;}[] = interferenceNode.stackTrace || [];
+  const location = interferenceNode.location
+
+  // verify if location is present on stack trace and add if not
+  let isPresent = false;
+  for (let n of stackTrace) {
+    if (normalizeFileKey(n.class) === normalizeFileKey(location.class) &&
+        n.line === location.line) {
+          isPresent = true;
+          break;
+        }
+  }
+
+  if (!isPresent) {
+    stackTrace.push({class: location.class, method: location.method, line: location.line});
+  }
 
   // Process stack trace frames
   for (const frame of stackTrace) {
