@@ -129,21 +129,19 @@ export function getFramesWithLines(
   // Process stack trace frames
   for (const frame of stackTrace) {
     // Extract line number
-    const line = frame.line ?? frame.location?.line;
+    const line = frame.line;
     if (line === undefined || line === null || line < 0 || isNaN(line)) {
       continue;
     }
 
     // Extract file key from various possible locations
     let fileKey: string | undefined;
-    if (frame.file) {
-      fileKey = normalizeFileKey(frame.file);
-    } else if (frame.location?.file) {
-      fileKey = normalizeFileKey(frame.location.file);
-    } else if (frame.class) {
-      fileKey = normalizeFileKey(frame.class);
-    } else if (frame.location?.class) {
-      fileKey = normalizeFileKey(frame.location.class);
+    try{
+      if (frame.class) {
+        fileKey = normalizeFileKey(frame.class);
+      }
+    } catch (e) {
+      throw e;
     }
 
     if (!fileKey) {
