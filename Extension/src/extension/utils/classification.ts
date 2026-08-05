@@ -199,24 +199,6 @@ export function framesToFiles(frames: FrameInfo[]): string[] {
 }
 
 /**
- * Same collapsing rule as framesToFiles, but keeps the representative FrameInfo
- * (with its line number and raw frame) for each unique consecutive file instead
- * of just the file key. This is what lets graph rendering build nodes directly
- * from classification's file sequence instead of re-deriving locations elsewhere.
- */
-export function framesToRepresentativeFrames(frames: FrameInfo[]): FrameInfo[] {
-  const result: FrameInfo[] = [];
-
-  for (const frame of frames) {
-    if (result.length === 0 || result[result.length - 1].fileKey !== frame.fileKey) {
-      result.push(frame);
-    }
-  }
-
-  return result;
-}
-
-/**
  * Reduce a representative-frame sequence for classification purposes.
  * Mirrors filesForClassification, but on FrameInfo so line numbers survive.
  */
@@ -336,20 +318,23 @@ function determineStackOwner(frames: FrameInfo[], interf: any, modifiedLines: Mo
   let owner: "L" | "R" | undefined;
 
   const thisLine = interf.location?.line;
-  const thisFileKey =
-    normalizeFileKey(interf.location?.file) ??
-    normalizeFileKey(interf.location?.class);
+  const interfFile = interf.location?.file === "UNKNOWN"
+                     ? interf.location.file
+                     : interf.location.class;
+  const thisFileKey = interfFile ? normalizeFileKey(interfFile) : undefined;
 
   if (thisFileKey && thisLine !== undefined) {
     owner = determineOwner(thisLine, thisFileKey, modifiedLines);
   }
 
   // Stack trace-based ownership (fallback)
-  for (const frame of frames) {
-    const frameOwner = determineOwner(frame.line, frame.fileKey, modifiedLines);
-    if (frameOwner) {
-      owner = frameOwner;
-      break;
+  if (!owner) {
+    for (const frame of frames) {
+      const frameOwner = determineOwner(frame.line, frame.fileKey, modifiedLines);
+      if (frameOwner) {
+        owner = frameOwner;
+        break;
+      }
     }
   }
 
@@ -637,8 +622,8 @@ export function processInterferencePair(
   const rightFilesFull = framesToFiles(rightFiltered);
   const leftFilesForClass = filesForClassification(leftFilesFull);
   const rightFilesForClass = filesForClassification(rightFilesFull);
-  const leftRepFrames = framesToRepresentativeFrames(leftFiltered);
-  const rightRepFrames = framesToRepresentativeFrames(rightFiltered);
+  const leftRepFrames = leftFiltered;
+  const rightRepFrames = rightFiltered;
 
   return {
     leftFilesFull,
@@ -1210,8 +1195,8 @@ export function processCFConflict(
     source1Files: source1FilesReduced,
     source2Files: source2FilesReduced,
     confluenceFile,
-    source1Frames: framesForClassification(framesToRepresentativeFrames(source1Frames)),
-    source2Frames: framesForClassification(framesToRepresentativeFrames(source2Frames)),
+    source1Frames: framesForClassification(source1Frames),
+    source2Frames: framesForClassification(source2Frames),
     confluenceFrame: {
       fileKey: confluenceFile,
       line: confluenceNode.location.line,
@@ -1237,16 +1222,6 @@ export function classifyCF(
 }
 
 /**
- * Main entry point for conflict classification.
- *
- * Routes to appropriate classifier based on conflict type:
- * - OA: type contains "OA"
- * - DF: type contains "CONFLICT"
- * - CF: label contains "cf conflict" OR node types include source1/source2/confluence
- *
- * Returns ClassificationResult with all metadata.
- */
-/**
  * Last-filter check: the graph's L and R nodes must each sit on a modified line, and on
  * *opposite* sides of the merge - if L is on a line the right branch added/removed, R must
  * be on a line the left branch added/removed (or vice versa). A conflict where both
@@ -1267,6 +1242,16 @@ function hasOppositeSideEndpoints(
   return !!leftOwner && !!rightOwner && leftOwner !== rightOwner;
 }
 
+/**
+ * Main entry point for conflict classification.
+ *
+ * Routes to appropriate classifier based on conflict type:
+ * - OA: type contains "OA"
+ * - DF: type contains "CONFLICT"
+ * - CF: label contains "cf conflict" OR node types include source1/source2/confluence
+ *
+ * Returns ClassificationResult with all metadata.
+ */
 export function classifyDependency(
   dependency: any,
   modifiedLines: ModifiedLinesMap | undefined

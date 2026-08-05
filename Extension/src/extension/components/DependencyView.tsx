@@ -47,17 +47,6 @@ function buildModifiedLinesMap(modifiedLines: modLine[]): Record<string, any> {
   return modifiedLinesMap;
 }
 
-// Best-effort stack-trace-corrected copy of a dependency, used for classification.
-function toClassifiableDependency(dep: dependency): dependency {
-  let depCopy = JSON.parse(JSON.stringify(dep));
-  try {
-    depCopy = updateLocationFromStackTrace(depCopy, { inplace: false, mode: "deep" });
-  } catch {
-    // No valid stack trace; depCopy retains original location values
-  }
-  return depCopy;
-}
-
 // Identifies conflicts that classification considers the same: same conflict shape (label)
 // at the same concrete locations. Two dependencies can differ in their raw stack traces
 // (and so survive filterDuplicatedDependencies) yet still classify down to an identical
@@ -165,14 +154,12 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
 
     const dep = dependencies[index];
     try {
-      // Build dependency copy for processing; fall back to location attributes if no stack trace
-      const depCopy = dep;
       const modifiedLinesMap = buildModifiedLinesMap(modifiedLines);
 
       // Classify the dependency first, then build the graph's nodes directly from the
       // classification result - the graph can never show endpoints classification didn't
       // actually reason about.
-      const classification = classifyDependency(depCopy, modifiedLinesMap);
+      const classification = classifyDependency(dep, modifiedLinesMap);
 
       const nodes = buildNodesFromClassification(classification);
       if (!nodes) {
@@ -181,8 +168,8 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
       }
       const { L, R, LC, RC } = nodes;
 
-      const newGraphData = Grouping_nodes(depCopy, L, R, LC, RC);
-      const graphType = getGraphType(depCopy, L, R, LC, RC, classification);
+      const newGraphData = Grouping_nodes(dep, L, R, LC, RC);
+      const graphType = getGraphType(dep, L, R, LC, RC, classification);
 
       if (newGraphData && graphType) {
         const c = classification;
@@ -198,7 +185,7 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
         }
         console.log(
           `[Graph] conflict #${index}\n` +
-          `  type        : ${depCopy.type}\n` +
+          `  type        : ${dep.type}\n` +
           `  class       : ${c?.label ?? 'none'}\n` +
           `  reason      : ${classReason}\n` +
           `  layout      : ${graphType.layout.rows}r × ${graphType.layout.columns}c\n` +
@@ -207,7 +194,7 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
         const graphDataObj = {
           files: reorderFilesForLayout(newGraphData, graphType.positions),
           graphType,
-          dependencyType: depCopy.type,
+          dependencyType: dep.type,
           classification,
         };
         setAllGraphsData(prev => new Map(prev).set(index, graphDataObj));
@@ -257,13 +244,6 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
         setloading(false);
         dependencyViewConfig = { owner, repository, pull_number };
         let dependencies = response.getDependencies();
-        // dependencies.forEach((dep) => {
-        //   if (
-        //     dep.body.interference[0].location.file === "UNKNOWN" ||
-        //     dep.body.interference[dep.body.interference.length - 1].location.file === "UNKNOWN"
-        //   )
-        //     updateLocationFromStackTrace(dep, { inplace: true });
-        // });
         dependencies = filterDuplicatedDependencies(dependencies);
 
         // Drop conflicts classification can't make sense of (error label) - there's no
