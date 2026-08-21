@@ -262,12 +262,16 @@ export default function DependencyView({ owner, repository, pull_number }: Depen
           return true;
         });
 
+        const interferenceLineRange = (dep: dependency): [number, number] => {
+          const interference = dep.body?.interference ?? [];
+          if (interference.length === 0) return [0, 0];
+          return [interference[0].location.line, interference[interference.length - 1].location.line];
+        };
+
         setDependencies(
           dependencies.sort((a, b) => {
-            const aStartLine = a.body.interference[0].location.line;
-            const bStartLine = b.body.interference[0].location.line;
-            const aEndLine = a.body.interference[a.body.interference.length - 1].location.line;
-            const bEndLine = b.body.interference[b.body.interference.length - 1].location.line;
+            const [aStartLine, aEndLine] = interferenceLineRange(a);
+            const [bStartLine, bEndLine] = interferenceLineRange(b);
 
             if (aStartLine < bStartLine) return -1;
             if (aStartLine > bStartLine) return 1;

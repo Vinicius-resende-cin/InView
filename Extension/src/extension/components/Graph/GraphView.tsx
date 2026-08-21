@@ -56,6 +56,10 @@ export default function GraphView({ data, conflictGridType, dependencyType }: Gr
         fileObject.nodes.forEach((node, nodeIndex) => {
           const posIndex = curNodeIndex++;
           const position = conflictGridType.positions[posIndex];
+          if (!position) {
+            console.warn("No grid position for node", posIndex, "- skipping", node.fileName, node.numberHighlight);
+            return;
+          }
           nodesIndex.push(nodeIndex);
 
           let nodeColor: { main: string; alt: string } = NodeColor.BASE;

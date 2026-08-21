@@ -13,16 +13,18 @@ const filterDuplicatedDependencies = (dependencies: dependency[]) => {
     if (
       !uniqueDependencies.some(
         (d) =>{
-          const dinterf0 = d.body.interference[0]
-          const dinterf1 = d.body.interference[d.body.interference.length - 1]
+          const dinterf0 = d.body.interference?.[0]
+          const dinterf1 = d.body.interference?.[d.body.interference.length - 1]
+
+          const interf0 = dep.body.interference?.[0]
+          const interf1 = dep.body.interference?.[dep.body.interference.length - 1]
+
+          if (!dinterf0 || !dinterf1 || !interf0 || !interf1) return false
 
           const di0s0 = dinterf0.stackTrace?.at(0)
           const di0s1 = dinterf0.stackTrace?.at(dinterf0.stackTrace.length - 1)
           const di1s0 = dinterf1.stackTrace?.at(0)
           const di1s1 = dinterf1.stackTrace?.at(dinterf1.stackTrace.length - 1)
-
-          const interf0 = dep.body.interference[0]
-          const interf1 = dep.body.interference[dep.body.interference.length - 1]
 
           const i0s0 = interf0.stackTrace?.at(0)
           const i0s1 = interf0.stackTrace?.at(interf0.stackTrace.length - 1)
