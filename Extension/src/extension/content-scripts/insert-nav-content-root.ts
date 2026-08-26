@@ -1,3 +1,5 @@
+import { findNavElement, resolveNavTabs } from "./find-nav";
+
 const DEPENDENCIES_URL = `#dependencies`;
 const dependenciesContentRootId = "dependencies-content-root";
 
@@ -116,13 +118,9 @@ const prepareDependenciesTab = async () => {
   }
 
   // get the nav element
-  let nav = document.querySelector("[aria-label='Pull request tabs']");
-  let navTabs = nav;
-  if (!nav) {
-    nav = document.querySelector("[aria-label='Pull request navigation tabs']");
-    navTabs = nav?.firstElementChild ?? null;
-  }
-  if (!nav || !navTabs) throw new Error("nav not found");
+  const navElement = findNavElement();
+  const nav = navElement ? resolveNavTabs(navElement) : null;
+  if (!nav) throw new Error("nav not found");
 
   // remove the selected class from the current selected tab
   let curSelected = nav.querySelector("[class*='selected']");

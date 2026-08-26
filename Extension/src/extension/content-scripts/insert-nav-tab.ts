@@ -1,5 +1,6 @@
 import { analysisAPI } from "../../config";
 import RepoService from "../../services/RepoService";
+import { findNavElement, resolveNavTabs } from "./find-nav";
 const repoService = new RepoService(analysisAPI);
 
 const DEPENDENCIES_URL = `#dependencies`;
@@ -68,12 +69,8 @@ const insertNavTab = async () => {
   if (!(await isRepoRegistered(owner, repo))) return;
 
   // get the nav element
-  let navElement = document.querySelector("[aria-label='Pull request tabs']");
-  let navTabs = navElement;
-  if (!navElement) {
-    navElement = document.querySelector("[aria-label='Pull request navigation tabs']");
-    navTabs = navElement?.firstElementChild ?? null;
-  }
+  const navElement = findNavElement();
+  const navTabs = navElement ? resolveNavTabs(navElement) : null;
   if (!navElement || !navTabs) return console.warn("nav not found");
 
   queueTask(() =>
